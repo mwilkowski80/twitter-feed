@@ -1,0 +1,4 @@
+selenium==4.18.1
+selenium-stealth==1.0.6
+webdriver-manager==4.0.1 
+SQLAlchemy==2.0.27 
