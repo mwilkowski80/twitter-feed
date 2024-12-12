@@ -35,8 +35,7 @@ class Tweet(Base):
         UniqueConstraint('handle', 'text', name='uix_handle_text'),
     )
 
-# Drop existing tables and create new ones with updated constraints
-Base.metadata.drop_all(engine)
+# Only create tables if they don't exist
 Base.metadata.create_all(engine)
 
 class TwitterScraper:
@@ -95,14 +94,24 @@ class TwitterScraper:
                 seconds = int(timestamp_str.replace('s', ''))
                 return now - timedelta(seconds=seconds)
             
-            # Handle "Month Day" format (e.g., "Mar 21")
-            elif re.match(r'[A-Za-z]{3} \d{1,2}', timestamp_str):
-                date_str = f"{timestamp_str} {now.year}"
-                return datetime.strptime(date_str, '%b %d %Y')
+            # Handle dates with year (e.g., "Feb 2, 2020" or "January 27, 2018")
+            elif ',' in timestamp_str and re.search(r'\d{4}', timestamp_str):
+                try:
+                    # Try standard format first
+                    return datetime.strptime(timestamp_str, '%b %d, %Y')
+                except ValueError:
+                    # Try full month name format
+                    return datetime.strptime(timestamp_str, '%B %d, %Y')
             
-            # Handle "Month Day, Year" format
-            elif re.match(r'[A-Za-z]{3} \d{1,2}, \d{4}', timestamp_str):
-                return datetime.strptime(timestamp_str, '%b %d, %Y')
+            # Handle "Month Day" format (e.g., "Mar 21")
+            elif re.match(r'[A-Za-z]{3,9} \d{1,2}', timestamp_str):
+                try:
+                    # Try abbreviated month format
+                    date_str = f"{timestamp_str} {now.year}"
+                    return datetime.strptime(date_str, '%b %d %Y')
+                except ValueError:
+                    # Try full month format
+                    return datetime.strptime(date_str, '%B %d %Y')
             
             return None
             
@@ -147,10 +156,8 @@ class TwitterScraper:
                         print(f"Timestamp: {original_timestamp} -> {parsed_timestamp}")
                     except IntegrityError as e:
                         self.session.rollback()
-                        if "UNIQUE constraint failed: tweets.tweet_id" in str(e):
-                            print(f"Tweet ID {tweet_id} already exists in database")
-                        elif "UNIQUE constraint failed: tweets.uix_handle_text" in str(e):
-                            print(f"Tweet with same text from {handle} already exists in database")
+                        if "UNIQUE constraint failed" in str(e):
+                            print(f"Note: Tweet from {handle} already exists in database, skipping...")
                         else:
                             print(f"Database error: {e}")
                         
