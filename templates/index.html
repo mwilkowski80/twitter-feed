@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Feed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f7f9fa;
+        }
+        .search-container {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .tweet {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .tweet-header {
+            margin-bottom: 10px;
+        }
+        .handle {
+            color: #1DA1F2;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .timestamp {
+            color: #657786;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .tweet-text {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .tweet-text a {
+            color: #1DA1F2;
+            text-decoration: none;
+        }
+        .tweet-text a:hover {
+            text-decoration: underline;
+        }
+        .meta {
+            color: #657786;
+            font-size: 12px;
+        }
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #657786;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <form action="/" method="get">
+            <input type="text" 
+                   name="search" 
+                   class="search-input" 
+                   placeholder="Search tweets..." 
+                   value="{{ search_term }}"
+                   autofocus>
+        </form>
+    </div>
+
+    {% if tweets %}
+        {% for tweet in tweets %}
+        <div class="tweet">
+            <div class="tweet-header">
+                <a href="https://twitter.com/{{ tweet.handle }}" class="handle" target="_blank">@{{ tweet.handle }}</a>
+                <span class="timestamp">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') if tweet.timestamp else tweet.tweet_original_timestamp }}</span>
+            </div>
+            <div class="tweet-text">{{ tweet.text|urlize }}</div>
+            <div class="meta">Original timestamp: {{ tweet.tweet_original_timestamp }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-results">
+            {% if search_term %}
+                No tweets found matching "{{ search_term }}"
+            {% else %}
+                No tweets found in the database
+            {% endif %}
+        </div>
+    {% endif %}
+</body>
+</html> 
