@@ -42,7 +42,7 @@ def index():
     # Apply search if term provided
     if search_term:
         search_pattern = f"%{search_term}%"
-        query = query.filter(Tweet.text.ilike(search_pattern))
+        query = query.filter(Tweet.text.ilike(search_pattern) | Tweet.handle.ilike(search_pattern))
     
     tweets = query.all()
     session.close()
