@@ -136,6 +136,15 @@ class TwitterScraper:
                     text = tweet.find_element(By.CSS_SELECTOR, '[data-testid="tweetText"]').text
                     original_timestamp = tweet.find_element(By.CSS_SELECTOR, 'time').text
                     
+                    # Try to extract link from tweet card if present
+                    try:
+                        card = tweet.find_element(By.CSS_SELECTOR, '[data-testid="card.wrapper"] a')
+                        card_link = card.get_attribute('href')
+                        if card_link:
+                            text = f"{text}\n{card_link}"
+                    except:
+                        pass  # No card link present
+                    
                     # Parse the timestamp
                     parsed_timestamp = self._parse_timestamp(original_timestamp)
                     
