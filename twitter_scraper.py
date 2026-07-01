@@ -121,30 +121,43 @@ class TwitterScraper:
 
     def scrape_handle(self, handle):
         try:
-            # Navigate to user's profile
-            self.driver.get(f'https://twitter.com/{handle}')
-            wait = WebDriverWait(self.driver, 10)
-            
-            # Wait for tweets to load
+            # Navigate to user's profile. twitter.com redirects to x.com, which
+            # serves logged-out clients a lightweight profile page. Its tweets are
+            # plain <article data-tweet-id="..."> elements (no data-testid attrs).
+            self.driver.get(f'https://x.com/{handle}')
+            wait = WebDriverWait(self.driver, 15)
+
+            # Wait for tweet articles to load
             tweets = wait.until(EC.presence_of_all_elements_located(
-                (By.CSS_SELECTOR, '[data-testid="tweet"]')))
-            
+                (By.CSS_SELECTOR, 'article[data-tweet-id]')))
+
             for tweet in tweets:
                 try:
-                    # Extract tweet information
+                    # Tweet id is carried on the article element itself
                     tweet_id = tweet.get_attribute('data-tweet-id')
-                    text = tweet.find_element(By.CSS_SELECTOR, '[data-testid="tweetText"]').text
-                    original_timestamp = tweet.find_element(By.CSS_SELECTOR, 'time').text
-                    
-                    # Try to extract link from tweet card if present
-                    try:
-                        card = tweet.find_element(By.CSS_SELECTOR, '[data-testid="card.wrapper"] a')
-                        card_link = card.get_attribute('href')
-                        if card_link:
+
+                    # Tweet body is the first dir="auto" block inside the article
+                    text_elements = tweet.find_elements(By.CSS_SELECTOR, 'div[dir="auto"]')
+                    text = text_elements[0].text if text_elements else ''
+                    # Long tweets are truncated with a trailing "Show more" link
+                    if text.endswith('Show more'):
+                        text = text[:-len('Show more')].rstrip()
+
+                    # The relative time is the text of the tweet's permalink anchor
+                    original_timestamp = ''
+                    for link in tweet.find_elements(By.CSS_SELECTOR, 'a[href*="/status/"]'):
+                        href = link.get_attribute('href') or ''
+                        if href.rstrip('/').endswith(tweet_id):
+                            original_timestamp = link.text.strip()
+                            break
+
+                    # Try to extract embedded card link (t.co) if present
+                    card_links = tweet.find_elements(By.CSS_SELECTOR, 'a[href*="t.co/"]')
+                    if card_links:
+                        card_link = card_links[0].get_attribute('href')
+                        if card_link and card_link not in text:
                             text = f"{text}\n{card_link}"
-                    except:
-                        pass  # No card link present
-                    
+
                     # Parse the timestamp
                     parsed_timestamp = self._parse_timestamp(original_timestamp)
                     
